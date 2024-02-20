@@ -1,0 +1,5 @@
+(library
+  (name ocaml_htmx_example)
+  (libraries base dream)
+  (preprocess
+    (pps lwt_ppx)))
