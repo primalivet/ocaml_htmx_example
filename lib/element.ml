@@ -38,4 +38,5 @@ let input = element "input"
 let button = element "button"
 let img = element "img"
 let caption = element "caption"
+let none = ""
 

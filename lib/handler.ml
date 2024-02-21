@@ -71,19 +71,26 @@ module Note = struct
   ;;
 
   let get_notes req =
-    let target = Dream.target req in
+    let page =
+      Dream.query req "page"
+      |> Option.bind ~f:Int.of_string_opt
+      |> Option.value ~default:1
+    in
+    let per_page =
+      Dream.query req "per_page"
+      |> Option.bind ~f:Int.of_string_opt
+      |> Option.value_map ~default:Pagination.default_per_page ~f:Pagination.clamp
+    in
+    let%lwt notes_total_count = Dream.sql req Note.get_notes_total_count in
+    let pagination =
+      { Pagination.page; per_page; total_count = notes_total_count; current_page = page }
+    in
+    let limit, offset = Pagination.to_sql pagination in
+    let%lwt notes = Dream.sql req (Note.get_notes (limit, offset)) in
     match Dream.header req "HX-Request" with
     | Some _ ->
-      Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
+      Dream.html @@ Partials.Note.list_notes_table pagination notes_total_count notes
     | _ ->
-      let page = Dream.query req "page" |> Option.value ~default:"1" |> Int.of_string in
-      let per_page =
-        Dream.query req "per_page" |> Option.value ~default:"5" |> Int.of_string
-      in
-      let%lwt notes_total_count = Dream.sql req Note.get_notes_total_count in
-      let pagination = { Pagination.page; per_page; total_count = notes_total_count } in
-      let limit, offset = Pagination.to_sql pagination in
-      let%lwt notes = Dream.sql req (Note.get_notes (limit, offset)) in
       Dream.html
       @@ Page.Note.base_layout ~req ~header:"Notes" ~desc:"Notes"
       @@ Partials.Note.list_notes_table pagination notes_total_count notes

@@ -2,7 +2,14 @@ type t =
   { page : int
   ; per_page : int
   ; total_count : int
+  ; current_page : int
   }
+
+let min_per_page = 3
+let max_per_page = 9
+let clamp n = Int.max min_per_page (Int.min n max_per_page)
+
+let default_per_page = 6
 
 (*
    Ensure we round up the total count
@@ -27,5 +34,5 @@ let to_sql p =
   limit, offset
 ;;
 
-let has_next p = p.page < (total_pages p)
+let has_next p = p.page < total_pages p
 let has_prev p = p.page > 1
