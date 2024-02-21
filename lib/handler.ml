@@ -39,37 +39,6 @@ module ExampleForm = struct
 end
 
 module Note = struct
-  let edit_note req =
-    let target = Dream.target req in
-    match Dream.header req "HX-Request" with
-    | Some _ ->
-      Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
-    | _ ->
-      let id = Dream.param req "id" in
-      let note = Note.find_by_id id in
-      (match note with
-       | Some note ->
-         Dream.html
-         @@ Page.Note.base_layout ~req ~header:"Edit note" ~desc:"Edit note"
-         @@ Partials.Note.edit_note_form req note
-       | None -> Dream.html "Not found")
-  ;;
-
-  let save_note req =
-    let target = Dream.target req in
-    match Dream.header req "HX-Request" with
-    | Some _ ->
-      Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
-    | _ ->
-      let id = Dream.param req "id" in
-      let note = Mock_data.Note.find_by_id id in
-      (match note with
-       | Some note ->
-         Stdlib.print_endline (Printf.sprintf "Saving note: %s" note.title);
-         Dream.redirect req "/notes?messages=Successfully saved note"
-       | None -> Dream.redirect req "/notes?errors=Failed to save note")
-  ;;
-
   let get_notes req =
     let page =
       Dream.query req "page"
@@ -96,18 +65,54 @@ module Note = struct
       @@ Partials.Note.list_notes_table pagination notes_total_count notes
   ;;
 
+  (* TODO: use proper 404 not found page contnet *)
+  let edit_note req =
+    let target = Dream.target req in
+    let id_opt = Dream.param req "id" |> Int.of_string_opt in
+    match id_opt with
+    | None -> Dream.html "Not found"
+    | Some id ->
+      let%lwt note_opt = Dream.sql req (Note.get_note id) in
+      (match Dream.header req "HX-Request" with
+       | Some _ ->
+         Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
+       | _ ->
+         (match note_opt with
+          | Some note ->
+            Dream.html
+            @@ Page.Note.base_layout ~req ~header:"Edit note" ~desc:"Edit note"
+            @@ Partials.Note.edit_note_form req note
+          | None -> Dream.html "Not found"))
+  ;;
+
+  let save_note req =
+    let target = Dream.target req in
+    match Dream.header req "HX-Request" with
+    | Some _ ->
+      Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
+    | _ -> Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
+  ;;
+
+  (* let id = Dream.param req "id" in *)
+  (* let note = Note.get_note id in *)
+  (* (match note with *)
+  (*  | Some note -> *)
+  (*    Stdlib.print_endline (Printf.sprintf "Saving note: %s" note.title); *)
+  (*    Dream.redirect req "/notes?messages=Successfully saved note" *)
+  (*  | None -> Dream.redirect req "/notes?errors=Failed to save note") *)
+
   let delete_note req =
     let target = Dream.target req in
     match Dream.header req "HX-Request" with
     | Some _ ->
       Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
-    | _ ->
-      let id = Dream.param req "id" in
-      let note = Note.find_by_id id in
-      (match note with
-       | Some note ->
-         Stdlib.print_endline (Printf.sprintf "Deleting note: %s" note.title);
-         Dream.redirect req "/notes?messages=Successfully deleted note"
-       | None -> Dream.redirect req "/notes?errors=Failed to delete note")
+    | _ -> Dream.html (Printf.sprintf "HX request for %s is not yet supported" target)
   ;;
+  (* let id = Dream.param req "id" in *)
+  (* let note = Note.find_by_id id in *)
+  (* (match note with *)
+  (*  | Some note -> *)
+  (*    Stdlib.print_endline (Printf.sprintf "Deleting note: %s" note.title); *)
+  (*    Dream.redirect req "/notes?messages=Successfully deleted note" *)
+  (*  | None -> Dream.redirect req "/notes?errors=Failed to delete note") *)
 end
